@@ -1,9 +1,10 @@
 var app = require('express').createServer(),
     io = require('socket.io').listen(app),
     sockDict = new Array();
-    adminSocket = null;
+    adminSocket = null,
+    config  = require('./settings.js');
 
-app.listen(8081);
+app.listen(config.port);
 
 io.sockets.on('connection',function(socket){
 
@@ -33,26 +34,23 @@ io.sockets.on('connection',function(socket){
     if(adminSocket == null){
       fn(false,'No server started, try again later');
     }
-    fn(true,null);
+    fn(true,{ 'points' : config.points} );
   });
 
   socket.on('vote',function(data){
-    console.log('voting from client');
-    console.log(data);
     adminSocket.emit('voteOccured', data);
   });
 
   socket.on('resetCmd',function(){
-    console.log('resetCmd');
     if(sockDict == null) return;
     socket.broadcast.emit('reset',{ 'userName' : sockDict[socket.id] });
   });
 
   socket.on('disconnect',function(){
-    console.log('disconnect');
     if(adminSocket != null && socket == adminSocket){
-      console.log('admin disconnected');
       adminSocket = null;
+      socket.broadcast.emit('adminDisconnected', { 'userName' : sockDict[socket.id] });
+      sockDict = new Array();
     }else{
       adminSocket.emit('clientDisconnect', {userName : sockDict[socket.id] });
     }
